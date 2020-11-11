@@ -49,7 +49,21 @@ public class PDNodeWritable implements Writable {
     edges.readFields(in);
   }
 
-  public void setEdges(EdgeWritable edges) {
-    this.edges = edges;
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder(new String(""));
+    for (Writable[] writable : edges.get()) {
+      IntWritable toNodeId = (IntWritable) writable[0];
+      IntWritable weight = (IntWritable) writable[1];
+      builder.append("(").append(toNodeId.get()).append(", ").append(weight.get()).append("), ");
+    }
+    if (builder.length() > 0) {
+      builder.setLength(builder.length() - 2);
+    }
+    return builder.toString();
+  }
+
+  public void setEdges(IntWritable[][] edges) {
+    this.edges.set(edges);
   }
 }
