@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -11,8 +12,9 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.Tool;
 
-public class PDPreProcess {
+public class PDPreProcess extends Configured implements Tool {
 
   public static class TokenizerMapper
       extends Mapper<Object, Text, IntWritable, Text> {
@@ -57,8 +59,10 @@ public class PDPreProcess {
     }
   }
 
-  public static Configuration getPreProcessConf(Path inputPath,
-      Path outputPath) throws IOException {
+  @Override
+  public int run(String[] strings) throws Exception {
+    Path inputPath = new Path(strings[0]);
+    Path outputPath = new Path(strings[1]);
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "PreProcess");
 
@@ -74,6 +78,7 @@ public class PDPreProcess {
     FileInputFormat.addInputPath(job, inputPath);
     SequenceFileOutputFormat.setOutputPath(job, outputPath);
 
-    return job.getConfiguration();
+    job.waitForCompletion(true);
+    return 0;
   }
 }

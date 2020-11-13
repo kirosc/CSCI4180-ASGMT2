@@ -1,6 +1,6 @@
 import java.io.IOException;
-
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -8,12 +8,12 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
-public class ParallelDijkstra {
+public class ParallelDijkstra extends Configured implements Tool {
 
   public static class PDMapper
       extends Mapper<IntWritable, PDNodeWritable, IntWritable, PDNodeWritable> {
@@ -39,32 +39,10 @@ public class ParallelDijkstra {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Path inputPath = new Path(args[0]);
-    Path outputPath = new Path(args[1]);
-    Path tempPath = new Path("tmp");
-
-    JobControl jc = new JobControl("ParallelDijkstra");
-    Configuration preProcessConf = PDPreProcess
-        .getPreProcessConf(inputPath, tempPath);
-    Configuration PDConf = getPDConf(tempPath, outputPath);
-    ControlledJob preProcessJob = new ControlledJob(preProcessConf);
-    ControlledJob PDJob = new ControlledJob(PDConf);
-
-    jc.addJob(preProcessJob);
-    jc.addJob(PDJob);
-    PDJob.addDependingJob(preProcessJob);
-
-    Thread runJobControl = new Thread(jc);
-    runJobControl.start();
-    while (!jc.allFinished()) {
-    }
-    System.out.println("Number of failed job: " + jc.getFailedJobList().size());
-    System.exit(jc.allFinished() ? 0 : 1);
-  }
-
-  public static Configuration getPDConf(Path inputPath,
-      Path outputPath) throws IOException {
+  @Override
+  public int run(String[] strings) throws Exception {
+    Path inputPath = new Path(strings[0]);
+    Path outputPath = new Path(strings[1]);
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "ParallelDijkstra");
 
@@ -80,6 +58,19 @@ public class ParallelDijkstra {
     SequenceFileInputFormat.addInputPath(job, inputPath);
     FileOutputFormat.setOutputPath(job, outputPath);
 
-    return job.getConfiguration();
+    job.waitForCompletion(true);
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    String inputPath = args[0];
+    String outputPath = args[1];
+    String tempPath = "tmp";
+
+    System.out.println("--------------------Running PDPreProcess--------------------");
+    ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath});
+    System.out.println("--------------------Running ParallelDijkstra--------------------");
+    ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath, outputPath});
+    System.exit(1);
   }
 }
