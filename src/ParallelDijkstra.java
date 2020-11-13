@@ -3,14 +3,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -19,11 +17,22 @@ public class ParallelDijkstra extends Configured implements Tool {
   public static class PDMapper
       extends Mapper<IntWritable, PDNodeWritable, IntWritable, PDNodeWritable> {
 
-    @Override
-    protected void map(IntWritable key, PDNodeWritable value, Context context)
-        throws IOException, InterruptedException {
+    private static final int TO_NODE_ID = 0;
+    private static final int WEIGHT = 1;
 
-      context.write(key, value);
+    @Override
+    protected void map(IntWritable key, PDNodeWritable node, Context context)
+        throws IOException, InterruptedException {
+      int distance = node.distance.get();
+      context.write(key, node); // Emit itself
+
+      for (Writable[] edge : node.edges.get()) {
+        IntWritable[] mEdge = (IntWritable[]) edge;
+        IntWritable id = mEdge[TO_NODE_ID];
+        int weight = mEdge[WEIGHT].get();
+        int newDistance = distance == Integer.MAX_VALUE ? Integer.MAX_VALUE : distance + weight;
+        context.write(id, new PDNodeWritable(id, new IntWritable(newDistance)));
+      }
     }
   }
 
