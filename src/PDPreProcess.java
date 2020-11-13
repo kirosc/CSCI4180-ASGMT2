@@ -10,7 +10,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 public class PDPreProcess {
 
@@ -57,18 +57,23 @@ public class PDPreProcess {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static Configuration getPreProcessConf(Path inputPath,
+      Path outputPath) throws IOException {
     Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "PD Pre Process");
+    Job job = Job.getInstance(conf, "PreProcess");
+
     job.setJarByClass(PDPreProcess.class);
     job.setMapperClass(TokenizerMapper.class);
-//    job.setCombinerClass(EdgeReducer.class);
     job.setReducerClass(EdgeReducer.class);
+    job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(PDNodeWritable.class);
-    job.setMapOutputValueClass(Text.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    // Writes binary files suitable for reading into subsequent MapReduce jobs
+    job.setOutputFormatClass(SequenceFileOutputFormat.class);
+
+    FileInputFormat.addInputPath(job, inputPath);
+    SequenceFileOutputFormat.setOutputPath(job, outputPath);
+
+    return job.getConfiguration();
   }
 }

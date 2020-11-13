@@ -18,11 +18,16 @@ public class PDNodeWritable implements Writable {
     }
   }
 
+  public PDNodeWritable() {
+    id = new IntWritable(-1);
+    distance = new IntWritable(Integer.MAX_VALUE);
+    prevNodeId = new IntWritable(-1);
+    edges = new EdgeWritable();
+  }
+
   public PDNodeWritable(IntWritable id) {
+    this();
     this.id = id;
-    this.distance = new IntWritable(Integer.MAX_VALUE);
-    this.prevNodeId = new IntWritable(Integer.MIN_VALUE);
-    this.edges = new EdgeWritable();
   }
 
   IntWritable id; // Node ID
