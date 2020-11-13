@@ -9,6 +9,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -27,14 +28,14 @@ public class ParallelDijkstra extends Configured implements Tool {
   }
 
   public static class PDReducer
-      extends Reducer<IntWritable, PDNodeWritable, IntWritable, Text> {
+      extends Reducer<IntWritable, PDNodeWritable, IntWritable, PDNodeWritable> {
 
     @Override
     protected void reduce(IntWritable key, Iterable<PDNodeWritable> values, Context context)
         throws IOException, InterruptedException {
 
       for (PDNodeWritable val : values) {
-        context.write(key, new Text(val.toString())); // Serialize the node
+        context.write(key, val); // Serialize the node
       }
     }
   }
@@ -50,13 +51,13 @@ public class ParallelDijkstra extends Configured implements Tool {
     job.setInputFormatClass(SequenceFileInputFormat.class);
     job.setMapperClass(PDMapper.class);
     job.setReducerClass(PDReducer.class);
-    job.setMapOutputValueClass(PDNodeWritable.class);
     job.setOutputKeyClass(IntWritable.class);
-    job.setOutputValueClass(Text.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
+    job.setOutputValueClass(PDNodeWritable.class);
+    // Writes binary files suitable for reading into subsequent MapReduce jobs
+    job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
     SequenceFileInputFormat.addInputPath(job, inputPath);
-    FileOutputFormat.setOutputPath(job, outputPath);
+    SequenceFileOutputFormat.setOutputPath(job, outputPath);
 
     job.waitForCompletion(true);
     return 0;
@@ -70,7 +71,9 @@ public class ParallelDijkstra extends Configured implements Tool {
     System.out.println("--------------------Running PDPreProcess--------------------");
     ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath});
     System.out.println("--------------------Running ParallelDijkstra--------------------");
-    ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath, outputPath});
+    ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath, "tmp-out"});
+    System.out.println("--------------------Running PDPostProcess--------------------");
+    ToolRunner.run(new PDPostProcess(), new String[]{"tmp-out", outputPath});
     System.exit(1);
   }
 }
