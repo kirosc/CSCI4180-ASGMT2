@@ -21,8 +21,10 @@ public class PDPreProcess extends Configured implements Tool {
 
     public void map(Object key, Text value, Context context
     ) throws IOException, InterruptedException {
+
       StringTokenizer itr = new StringTokenizer(value.toString());
       String fromNodeId, toNodeId, edge;
+
       while (itr.hasMoreTokens()) {
         fromNodeId = itr.nextToken();
         toNodeId = itr.nextToken();
@@ -41,8 +43,11 @@ public class PDPreProcess extends Configured implements Tool {
     public void reduce(IntWritable key, Iterable<Text> values, Context context)
         throws IOException, InterruptedException {
 
-      PDNodeWritable node = new PDNodeWritable(key);
-      ArrayList<IntWritable[]> edges = new ArrayList<IntWritable[]>();
+      Configuration conf = context.getConfiguration();
+      int srcId = Integer.parseInt(conf.get("src"));
+      int distance = srcId == key.get() ? 0 : Integer.MAX_VALUE;
+      PDNodeWritable node = new PDNodeWritable(key, new IntWritable(distance));
+      ArrayList<IntWritable[]> edges = new ArrayList<>();
 
       for (Text val : values) {
         String[] str = val.toString().split(" ", 2);
@@ -63,7 +68,9 @@ public class PDPreProcess extends Configured implements Tool {
   public int run(String[] strings) throws Exception {
     Path inputPath = new Path(strings[0]);
     Path outputPath = new Path(strings[1]);
+    String src = strings[2];
     Configuration conf = new Configuration();
+    conf.set("src", src);
     Job job = Job.getInstance(conf, "PreProcess");
 
     job.setJarByClass(PDPreProcess.class);

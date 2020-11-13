@@ -64,16 +64,23 @@ public class ParallelDijkstra extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
+    if (args.length != 4) {
+      System.out
+          .println("hadoop jar [.jar file] ParallelDijkstra [infile] [outdir] [src] [iterations]");
+      System.exit(1);
+    }
     String inputPath = args[0];
     String outputPath = args[1];
     String tempPath = "tmp";
+    String src = args[2];
+    String iterations = args[3];
 
     System.out.println("--------------------Running PDPreProcess--------------------");
-    ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath});
+    ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath, src});
     System.out.println("--------------------Running ParallelDijkstra--------------------");
     ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath, "tmp-out"});
     System.out.println("--------------------Running PDPostProcess--------------------");
     ToolRunner.run(new PDPostProcess(), new String[]{"tmp-out", outputPath});
-    System.exit(1);
+    System.exit(0);
   }
 }

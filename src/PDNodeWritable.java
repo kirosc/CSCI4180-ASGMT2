@@ -25,9 +25,11 @@ public class PDNodeWritable implements Writable {
     edges = new EdgeWritable();
   }
 
-  public PDNodeWritable(IntWritable id) {
-    this();
+  public PDNodeWritable(IntWritable id, IntWritable distance) {
     this.id = id;
+    this.distance = distance;
+    prevNodeId = new IntWritable(-1);
+    edges = new EdgeWritable();
   }
 
   IntWritable id; // Node ID
@@ -56,7 +58,7 @@ public class PDNodeWritable implements Writable {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder(new String(""));
+    StringBuilder builder = new StringBuilder(new String(this.distance + " "));
     for (Writable[] writable : edges.get()) {
       IntWritable toNodeId = (IntWritable) writable[0];
       IntWritable weight = (IntWritable) writable[1];
