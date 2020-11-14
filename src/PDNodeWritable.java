@@ -22,20 +22,24 @@ public class PDNodeWritable implements Writable {
     id = new IntWritable(-1);
     distance = new IntWritable(Integer.MAX_VALUE);
     prevNodeId = new IntWritable(-1);
-    edges = new EdgeWritable();
   }
 
   public PDNodeWritable(IntWritable id, IntWritable distance) {
     this.id = id;
     this.distance = distance;
     prevNodeId = new IntWritable(-1);
-    edges = new EdgeWritable();
+  }
+
+  public PDNodeWritable(IntWritable id, IntWritable distance, IntWritable prevNodeId) {
+    this.id = id;
+    this.distance = distance;
+    this.prevNodeId = prevNodeId;
   }
 
   IntWritable id; // Node ID
   IntWritable distance; // Shortest path length
   IntWritable prevNodeId; // Previous node
-  EdgeWritable edges; // Adjacency list
+  EdgeWritable edges = new EdgeWritable(new IntWritable[0][]); // Adjacency list
 
   // Output format: (nodeID, distance, prev),
   // Serialize
@@ -58,7 +62,8 @@ public class PDNodeWritable implements Writable {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder(new String(this.distance + " "));
+    StringBuilder builder = new StringBuilder(
+        new String(this.distance.get() + " " + this.prevNodeId.get() + " "));
     for (Writable[] writable : edges.get()) {
       IntWritable toNodeId = (IntWritable) writable[0];
       IntWritable weight = (IntWritable) writable[1];
@@ -71,6 +76,10 @@ public class PDNodeWritable implements Writable {
   }
 
   public void setEdges(IntWritable[][] edges) {
+    this.edges.set(edges);
+  }
+
+  public void setEdges(Writable[][] edges) {
     this.edges.set(edges);
   }
 }

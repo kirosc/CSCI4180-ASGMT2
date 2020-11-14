@@ -27,11 +27,11 @@ public class ParallelDijkstra extends Configured implements Tool {
       context.write(key, node); // Emit itself
 
       for (Writable[] edge : node.edges.get()) {
-        IntWritable[] mEdge = (IntWritable[]) edge;
-        IntWritable id = mEdge[TO_NODE_ID];
-        int weight = mEdge[WEIGHT].get();
+        IntWritable id = (IntWritable) edge[TO_NODE_ID];
+        int weight = ((IntWritable) edge[WEIGHT]).get();
         int newDistance = distance == Integer.MAX_VALUE ? Integer.MAX_VALUE : distance + weight;
-        context.write(id, new PDNodeWritable(id, new IntWritable(newDistance)));
+        // Writing (toNodeId, prevNodeId, distance)
+        context.write(id, new PDNodeWritable(id, new IntWritable(newDistance), key));
       }
     }
   }
@@ -40,12 +40,38 @@ public class ParallelDijkstra extends Configured implements Tool {
       extends Reducer<IntWritable, PDNodeWritable, IntWritable, PDNodeWritable> {
 
     @Override
-    protected void reduce(IntWritable key, Iterable<PDNodeWritable> values, Context context)
+    protected void reduce(IntWritable key, Iterable<PDNodeWritable> nodes, Context context)
         throws IOException, InterruptedException {
 
-      for (PDNodeWritable val : values) {
-        context.write(key, val); // Serialize the node
+      int distance = Integer.MAX_VALUE;
+      IntWritable prevNodeId = new IntWritable(-1);
+      Writable[][] edges = new IntWritable[0][];
+
+      for (PDNodeWritable node : nodes) {
+
+        System.out.println("--------------------" + node.id.get() + "--------------------");
+        System.out.println(node.toString());
+        System.out.println("----------------------------------------");
+
+        int mDistance = node.distance.get();
+
+        // If it's a shorter path
+        if (mDistance < distance) {
+          System.out.println("Updatung distance!");
+          distance = mDistance;
+          prevNodeId.set(node.prevNodeId.get());
+        }
+
+        // If contains edges
+        if (node.edges.get().length > 0) {
+          edges = node.edges.get();
+        }
       }
+
+      PDNodeWritable node = new PDNodeWritable(key, new IntWritable(distance), prevNodeId);
+      node.setEdges(edges);
+
+      context.write(key, node); // Serialize the node
     }
   }
 
@@ -80,16 +106,19 @@ public class ParallelDijkstra extends Configured implements Tool {
     }
     String inputPath = args[0];
     String outputPath = args[1];
-    String tempPath = "tmp";
+    String tempPath = "tmp-";
     String src = args[2];
-    String iterations = args[3];
+    int iterations = Integer.parseInt(args[3]);
 
     System.out.println("--------------------Running PDPreProcess--------------------");
-    ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath, src});
-    System.out.println("--------------------Running ParallelDijkstra--------------------");
-    ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath, "tmp-out"});
+    ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath + 0, src});
+    for (int i = 0; i < iterations; i++) {
+      System.out
+          .println("--------------------Running ParallelDijkstra (" + i + ")--------------------");
+      ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath + i, tempPath + (i + 1)});
+    }
     System.out.println("--------------------Running PDPostProcess--------------------");
-    ToolRunner.run(new PDPostProcess(), new String[]{"tmp-out", outputPath});
+    ToolRunner.run(new PDPostProcess(), new String[]{tempPath + iterations, outputPath});
     System.exit(0);
   }
 }
