@@ -47,8 +47,8 @@ public class PDPreProcess extends Configured implements Tool {
       int srcId = Integer.parseInt(conf.get("src"));
       int distance = srcId == key.get() ? 0 : Integer.MAX_VALUE;
       int prevNodeId = srcId == key.get() ? srcId : -1;
-      PDNodeWritable node = new PDNodeWritable(key, new IntWritable(distance), new IntWritable(prevNodeId)
-      );
+      PDNodeWritable node = new PDNodeWritable(new IntWritable(key.get()),
+          new IntWritable(distance), new IntWritable(prevNodeId));
       ArrayList<IntWritable[]> edges = new ArrayList<>();
 
       for (Text val : values) {
