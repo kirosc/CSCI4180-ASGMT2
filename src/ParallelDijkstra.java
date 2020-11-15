@@ -14,6 +14,8 @@ import org.apache.hadoop.util.ToolRunner;
 
 public class ParallelDijkstra extends Configured implements Tool {
 
+  public enum ReachCounter {COUNT}
+
   public static class PDMapper
       extends Mapper<IntWritable, PDNodeWritable, IntWritable, PDNodeWritable> {
 
@@ -46,6 +48,7 @@ public class ParallelDijkstra extends Configured implements Tool {
       int distance = Integer.MAX_VALUE;
       IntWritable prevNodeId = new IntWritable(-1);
       Writable[][] edges = new IntWritable[0][];
+      System.out.println("Counter: " + context.getCounter(ReachCounter.COUNT).getValue());
 
       for (PDNodeWritable node : nodes) {
 
@@ -57,9 +60,9 @@ public class ParallelDijkstra extends Configured implements Tool {
 
         // If it's a shorter path
         if (mDistance < distance) {
-          System.out.println("Updatung distance!");
           distance = mDistance;
           prevNodeId.set(node.prevNodeId.get());
+          context.getCounter(ReachCounter.COUNT).increment(1);
         }
 
         // If contains edges
@@ -95,7 +98,7 @@ public class ParallelDijkstra extends Configured implements Tool {
     SequenceFileOutputFormat.setOutputPath(job, outputPath);
 
     job.waitForCompletion(true);
-    return 0;
+    return (int) job.getCounters().findCounter(ReachCounter.COUNT).getValue();
   }
 
   public static void main(String[] args) throws Exception {
@@ -112,13 +115,34 @@ public class ParallelDijkstra extends Configured implements Tool {
 
     System.out.println("--------------------Running PDPreProcess--------------------");
     ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath + 0, src});
-    for (int i = 0; i < iterations; i++) {
-      System.out
-          .println("--------------------Running ParallelDijkstra (" + i + ")--------------------");
-      ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath + i, tempPath + (i + 1)});
+
+    // Run until converged
+    if (iterations == 0) {
+      int i = 0, streak = 0, prevReachCounter = -1;
+      do {
+        int reachCounter = runParallelDijkstra(tempPath, i);
+        streak = prevReachCounter == reachCounter ? streak + 1 : 0; // Count the streak
+        prevReachCounter = reachCounter;
+        i++;
+      } while (streak != 2);
+
+      iterations = i; // Set the output path
+    } else {
+      for (int i = 0; i < iterations; i++) {
+        runParallelDijkstra(tempPath, i);
+      }
     }
+
     System.out.println("--------------------Running PDPostProcess--------------------");
     ToolRunner.run(new PDPostProcess(), new String[]{tempPath + iterations, outputPath});
+
     System.exit(0);
+  }
+
+  private static int runParallelDijkstra(String tempPath, int i) throws Exception {
+    String str = "--------------------Running ParallelDijkstra (" + i + ")--------------------";
+    System.out.println(str);
+
+    return ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath + i, tempPath + (i + 1)});
   }
 }
