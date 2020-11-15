@@ -15,6 +15,8 @@ import org.apache.hadoop.util.Tool;
 
 public class PRPreProcess extends Configured implements Tool {
 
+  public enum NodeCounter {COUNT}
+
   public static class TokenizerMapper
       extends Mapper<Object, Text, IntWritable, IntWritable> {
 
@@ -39,6 +41,8 @@ public class PRPreProcess extends Configured implements Tool {
   public static class EdgeReducer
       extends Reducer<IntWritable, IntWritable, IntWritable, PRNodeWritable> {
 
+    private int nodes = 0;
+
     public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context)
         throws IOException, InterruptedException {
 
@@ -51,7 +55,13 @@ public class PRPreProcess extends Configured implements Tool {
       }
       node.setEdges(edges.toArray(new IntWritable[0]));
 
+      nodes++;
       context.write(key, node); // Serialize the node
+    }
+
+    @Override
+    protected void cleanup(Context context) throws IOException, InterruptedException {
+      context.getCounter(NodeCounter.COUNT).setValue(nodes);
     }
   }
 
@@ -75,6 +85,6 @@ public class PRPreProcess extends Configured implements Tool {
     SequenceFileOutputFormat.setOutputPath(job, outputPath);
 
     job.waitForCompletion(true);
-    return 0;
+    return (int) job.getCounters().findCounter(NodeCounter.COUNT).getValue();
   }
 }
