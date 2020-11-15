@@ -75,7 +75,7 @@ public class PRPreProcess extends Configured implements Tool {
     Path inputPath = new Path(strings[0]);
     Path outputPath = new Path(strings[1]);
     Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "PreProcess");
+    Job job = Job.getInstance(conf, "PRPreProcess");
 
     job.setJarByClass(PRPreProcess.class);
     job.setMapperClass(TokenizerMapper.class);
