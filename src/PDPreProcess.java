@@ -23,15 +23,15 @@ public class PDPreProcess extends Configured implements Tool {
     ) throws IOException, InterruptedException {
 
       StringTokenizer itr = new StringTokenizer(value.toString());
-      String fromNodeId, toNodeId, edge;
+      String fromNodeId, toNodeId, weight;
 
       while (itr.hasMoreTokens()) {
         fromNodeId = itr.nextToken();
         toNodeId = itr.nextToken();
-        edge = itr.nextToken();
+        weight = itr.nextToken();
         context.write(
             new IntWritable(Integer.parseInt(fromNodeId)),
-            new Text(toNodeId + " " + edge)
+            new Text(toNodeId + " " + weight)
         );
       }
     }
