@@ -51,13 +51,13 @@ public class ParallelDijkstra extends Configured implements Tool {
       int distance = Integer.MAX_VALUE;
       IntWritable prevNodeId = new IntWritable(-1);
       Writable[][] edges = new IntWritable[0][];
-      System.out.println("Counter: " + context.getCounter(ReachCounter.COUNT).getValue());
+      
 
       for (PDNodeWritable node : nodes) {
 
-        System.out.println("--------------------" + node.id.get() + "--------------------");
-        System.out.println(node.toString());
-        System.out.println("----------------------------------------");
+        
+        
+        
 
         int mDistance = node.distance.get();
 
@@ -154,7 +154,6 @@ public class ParallelDijkstra extends Configured implements Tool {
     String src = args[2];
     int iterations = Integer.parseInt(args[3]);
 
-    System.out.println("--------------------Running PDPreProcess--------------------");
     ToolRunner.run(new PDPreProcess(), new String[]{inputPath, tempPath + 0, src});
 
     // Run until converged
@@ -174,16 +173,12 @@ public class ParallelDijkstra extends Configured implements Tool {
       }
     }
 
-    System.out.println("--------------------Running PDPostProcess--------------------");
     ToolRunner.run(new PDPostProcess(), new String[]{tempPath + iterations, outputPath});
 
     System.exit(0);
   }
 
   private static int runParallelDijkstra(String tempPath, int i) throws Exception {
-    String str = "--------------------Running ParallelDijkstra (" + i + ")--------------------";
-    System.out.println(str);
-
     return ToolRunner.run(new ParallelDijkstra(), new String[]{tempPath + i, tempPath + (i + 1)});
   }
 }
