@@ -28,10 +28,14 @@ public class PDPostProcess extends Configured implements Tool {
       Reducer<IntWritable, PDNodeWritable, IntWritable, Text> {
 
     @Override
-    protected void reduce(IntWritable key, Iterable<PDNodeWritable> values, Context context)
+    protected void reduce(IntWritable key, Iterable<PDNodeWritable> nodes, Context context)
         throws IOException, InterruptedException {
-      for (PDNodeWritable val : values) {
-        context.write(key, new Text(val.toString())); // Serialize the node
+      for (PDNodeWritable node : nodes) {
+        // Reachable nodes
+        if (node.distance.get() != Integer.MAX_VALUE) {
+          Text output = new Text(node.distance.get() + " " + node.prevNodeId.get());
+          context.write(key, output); // Serialize the node
+        }
       }
     }
   }

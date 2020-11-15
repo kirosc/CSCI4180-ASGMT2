@@ -41,7 +41,7 @@ public class PDNodeWritable implements Writable {
   IntWritable prevNodeId; // Previous node
   EdgeWritable edges = new EdgeWritable(new IntWritable[0][]); // Adjacency list
 
-  // Output format: (nodeID, distance, prev),
+  // Output format: (nodeID, distance, prev)
   // Serialize
   @Override
   public void write(DataOutput out) throws IOException {

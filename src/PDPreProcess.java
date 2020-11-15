@@ -55,6 +55,7 @@ public class PDPreProcess extends Configured implements Tool {
         String[] str = val.toString().split(" ", 2);
         int toNodeId = Integer.parseInt(str[0]);
         int weight = Integer.parseInt(str[1]);
+        // Adjacency list
         edges.add(new IntWritable[]{
             new IntWritable(toNodeId),
             new IntWritable(weight)
@@ -70,9 +71,9 @@ public class PDPreProcess extends Configured implements Tool {
   public int run(String[] strings) throws Exception {
     Path inputPath = new Path(strings[0]);
     Path outputPath = new Path(strings[1]);
-    String src = strings[2];
+    String srcNodeId = strings[2];
     Configuration conf = new Configuration();
-    conf.set("src", src);
+    conf.set("src", srcNodeId);
     Job job = Job.getInstance(conf, "PreProcess");
 
     job.setJarByClass(PDPreProcess.class);
