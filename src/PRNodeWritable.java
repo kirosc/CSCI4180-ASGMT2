@@ -24,9 +24,14 @@ public class PRNodeWritable implements Writable {
     rank = new DoubleWritable(-1);
   }
 
-  public PRNodeWritable(IntWritable id) {
-    this.id = id;
+  public PRNodeWritable(int id) {
+    this.id = new IntWritable(id);
     rank = new DoubleWritable(-1);
+  }
+
+  public PRNodeWritable(int id, double rank) {
+    this.id = new IntWritable(id);
+    this.rank = new DoubleWritable(rank);
   }
 
   IntWritable id; // Node ID
@@ -60,7 +65,7 @@ public class PRNodeWritable implements Writable {
     return builder.toString();
   }
 
-  public void setEdges(IntWritable[] edges) {
+  public void setEdges(Writable[] edges) {
     this.edges.set(edges);
   }
 }

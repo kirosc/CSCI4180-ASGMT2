@@ -48,7 +48,7 @@ public class PRPreProcess extends Configured implements Tool {
     public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context)
         throws IOException, InterruptedException {
 
-      PRNodeWritable node = new PRNodeWritable(new IntWritable(key.get()));
+      PRNodeWritable node = new PRNodeWritable(key.get());
       ArrayList<IntWritable> edges = new ArrayList<>();
 
       // Adjacency list
