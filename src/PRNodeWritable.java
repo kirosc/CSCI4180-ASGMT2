@@ -52,7 +52,7 @@ public class PRNodeWritable implements Writable {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
+    StringBuilder builder = new StringBuilder(rank.get() + " ");
     for (Writable toNode : edges.get()) {
       IntWritable toNodeId = (IntWritable) toNode;
       builder.append(toNodeId.get()).append(" ");

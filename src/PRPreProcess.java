@@ -4,6 +4,7 @@ import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -41,12 +42,13 @@ public class PRPreProcess extends Configured implements Tool {
   public static class EdgeReducer
       extends Reducer<IntWritable, IntWritable, IntWritable, PRNodeWritable> {
 
-    private int nodes = 0;
+    private ArrayList<PRNodeWritable> nodes = new ArrayList<>();
+    private int nodeCounter = 0;
 
     public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context)
         throws IOException, InterruptedException {
 
-      PRNodeWritable node = new PRNodeWritable(key);
+      PRNodeWritable node = new PRNodeWritable(new IntWritable(key.get()));
       ArrayList<IntWritable> edges = new ArrayList<>();
 
       // Adjacency list
@@ -55,13 +57,16 @@ public class PRPreProcess extends Configured implements Tool {
       }
       node.setEdges(edges.toArray(new IntWritable[0]));
 
-      nodes++;
-      context.write(key, node); // Serialize the node
+      nodeCounter++;
+      nodes.add(node);
     }
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-      context.getCounter(NodeCounter.COUNT).setValue(nodes);
+      for (PRNodeWritable node : nodes) {
+        node.rank = new DoubleWritable(1.0 / nodeCounter);
+        context.write(node.id, node); // Serialize the node
+      }
     }
   }
 
