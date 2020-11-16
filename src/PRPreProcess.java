@@ -6,9 +6,9 @@ import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -27,15 +27,14 @@ public class PRPreProcess extends Configured implements Tool {
     ) throws IOException, InterruptedException {
 
       StringTokenizer itr = new StringTokenizer(value.toString());
-      String fromNodeId, toNodeId;
 
       while (itr.hasMoreTokens()) {
-        fromNodeId = itr.nextToken();
-        toNodeId = itr.nextToken();
+        int fromNodeId = Integer.parseInt(itr.nextToken());
+        int toNodeId = Integer.parseInt(itr.nextToken());
         itr.nextToken(); // Skip weight
         context.write(
-            new IntWritable(Integer.parseInt(fromNodeId)),
-            new IntWritable(Integer.parseInt(toNodeId))
+            new IntWritable(fromNodeId),
+            new IntWritable(toNodeId)
         );
       }
     }
@@ -44,30 +43,43 @@ public class PRPreProcess extends Configured implements Tool {
   public static class EdgeReducer
       extends Reducer<IntWritable, IntWritable, IntWritable, PRNodeWritable> {
 
-    private ArrayList<PRNodeWritable> nodes = new ArrayList<>();
-    private Set<Integer> nodeSet = new HashSet<>(); // Count the total nodes
+    // Handle isolated nodes and count total node
+    private static final Set<Integer> seenNode = new HashSet<>();
+    private static final ArrayList<PRNodeWritable> nodes = new ArrayList<>();
 
-    public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context)
-        throws IOException, InterruptedException {
+    public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context) {
 
       PRNodeWritable node = new PRNodeWritable(key.get());
       ArrayList<IntWritable> edges = new ArrayList<>();
 
       // Adjacency list
       for (IntWritable toNodeId : toNodes) {
-        edges.add(new IntWritable(toNodeId.get()));
-        nodeSet.add(toNodeId.get());
+        int id = toNodeId.get();
+        edges.add(new IntWritable(id));
       }
       node.setEdges(edges.toArray(new IntWritable[0]));
 
-      nodeSet.add(key.get());
+      seenNode.add(key.get());
       nodes.add(node);
     }
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
+      ArrayList<PRNodeWritable> danglingNodes = new ArrayList<>();
       for (PRNodeWritable node : nodes) {
-        node.rank = new DoubleWritable(1.0 / nodeSet.size());
+        for (Writable edge : node.edges.get()) {
+          int id = ((IntWritable) edge).get();
+          if (!seenNode.contains(id)) {
+            // Node without outgoing edge
+            seenNode.add(id);
+            danglingNodes.add(new PRNodeWritable(id));
+          }
+        }
+      }
+      nodes.addAll(danglingNodes);
+
+      for (PRNodeWritable node : nodes) {
+        node.rank.set(1.0 / seenNode.size());
         context.write(node.id, node); // Serialize the node
       }
     }
