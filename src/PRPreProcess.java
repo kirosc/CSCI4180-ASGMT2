@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -43,7 +45,7 @@ public class PRPreProcess extends Configured implements Tool {
       extends Reducer<IntWritable, IntWritable, IntWritable, PRNodeWritable> {
 
     private ArrayList<PRNodeWritable> nodes = new ArrayList<>();
-    private int nodeCounter = 0;
+    private Set<Integer> nodeSet = new HashSet<>(); // Count the total nodes
 
     public void reduce(IntWritable key, Iterable<IntWritable> toNodes, Context context)
         throws IOException, InterruptedException {
@@ -54,17 +56,18 @@ public class PRPreProcess extends Configured implements Tool {
       // Adjacency list
       for (IntWritable toNodeId : toNodes) {
         edges.add(new IntWritable(toNodeId.get()));
+        nodeSet.add(toNodeId.get());
       }
       node.setEdges(edges.toArray(new IntWritable[0]));
 
-      nodeCounter++;
+      nodeSet.add(key.get());
       nodes.add(node);
     }
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
       for (PRNodeWritable node : nodes) {
-        node.rank = new DoubleWritable(1.0 / nodeCounter);
+        node.rank = new DoubleWritable(1.0 / nodeSet.size());
         context.write(node.id, node); // Serialize the node
       }
     }
